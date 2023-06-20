@@ -1,0 +1,544 @@
+---
+title: "AEDV - Avaliação 2"
+author: "Pedro Henrique Coterli"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    number_sections: no
+    highlight: default
+    theme: united
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smmoth_scroll: no
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r, include=FALSE}
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+```
+
+# Etapa A - Formulação e documentação da ideia
+
+Para iniciar este trabalho, primeiramente, fui atrás da minha base de dados, é claro. Depois de procurar por um tempo no Kaggle, pensei em uma temática que eu adoro e com a qual ainda não tinha trabalhado: astronomia. Assim, comecei a analisar algumas bases disponíveis sobre esse assunto. Encontrei uma base bem completa e detalhada sobre exoplanetas, [nesse link](https://www.kaggle.com/datasets/eduardowoj/exoplanets-database). No entanto, existe o site oficial dessa base, chamado ["The Extrasolar Planets Encyclopedia"](http://exoplanet.eu/), no qual ela está mais atualizada e com mais registros. Assim, acessei o site, baixei o arquivo .csv com os dados e passei a explorar cuidadosamente as variáveis para ver que análises elas poderiam me proporcionar.
+
+Minha ideia inicial de hipótese seria responder à pergunta "Qual a probabilidade de já termos encontrado um planeta com vida?". Entretanto, quando comecei a estudar sobre essa questão, percebi que eu não possuía tantas informações assim para respondê-la, já que a maioria das variáveis presentes na minha base diziam respeito aos aspectos físicos mais externos dos planetas, não entrando tanto em detalhes. Assim, essa hipótese foi descartada...
+
+Mas, outra ideia me veio à mente: "Qual a probabilidade de já termos encontrado um planeta semelhante à Terra?". Essa era uma pergunta mais facilmente trabalhável com os dados que eu possuía, e essa base me ajudaria muito para isso, já que ela possui diversas informações diferentes sobre cada planeta registrado.
+
+Decidida a hipótese, passei a projetar alguns rascunhos para a minha peça gráfica. Imaginei que não caberia em apenas uma página de apresentação, pois seriam vários gráficos diferentes e cada um deles teria que vir acompanhado de uma explicação, já que as informações que eu apresentaria não seriam tão triviais. Desse modo, depois de alguns testes, cheguei ao seguinte modelo:
+
+
+```{r}
+knitr::include_graphics("rascunho.png")
+```
+
+Feito isso, é hora de começar a análise exploratória.
+
+# Etapa B - Análise exploratória da base de dados
+
+Para começar, vamos atribuir nossa tabela a uma variável:
+
+```{r}
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+library(tidyverse)
+
+data = read.csv("exoplanet.eu_catalog.csv")
+```
+
+Agora, temos que filtrar essa base para utilizarmos apenas as informações de que precisamos, já que ela tem nada menos que 98 colunas! Assim, depois de uma observação de cada uma das variáveis presentes, escolhi as seguintes para trabalhar:
+
+- Massa do planeta
+- Raio do planeta
+- Período orbital do planeta
+- Temperatura calculada do planeta
+- Excentricidade orbital do planeta
+- Massa da estrela
+- Raio da estrela
+- Tipo da estrela
+- Temperatura da estrela
+
+Portanto, vamos filtrar nossa base para ficarmos apenas com essas informações:
+
+```{r}
+dados = data %>% select(X..name, mass, radius, orbital_period, temp_calculated, eccentricity, star_mass, star_radius, star_sp_type, star_teff)
+```
+
+## Massa e raio do planeta
+
+Para iniciar nossa análise, vamos descobrir quantos são os planetas da nossa base que possuem massa semelhante à da Terra. Para isso, primeiramente, vamos filtrar nossa tabela para eliminar os valores nulos e vamos converter os dados de "massas de Júpiter" para "massas terrestres".
+
+```{r}
+massa = dados %>%
+  filter(!is.na(mass)) %>% 
+  select(X..name, mass) %>% 
+  mutate(mass = mass*318)
+
+nrow(massa)
+head(massa)
+```
+
+Agora, vamos ver quantos desses 1895 planetas com massa conhecida se assemelham à Terra nesse aspecto. Consideremos uma massa entre 0,5 e 1,5 massa terrestre.
+
+```{r}
+massa_adequada = massa %>% 
+  filter(mass > 0.5 & mass < 1.5)
+
+nrow(massa_adequada)
+head(massa_adequada)
+```
+
+Com isso, concluimos que 27 de 1895 planetas possuem massa semelhante à da Terra, ou seja, **1,42%**.
+
+Em seguida, vamos fazer esse mesmo estudo para o raio. Novamente, criemos nossa tabela eliminando os valores nulos e convertendo os dados de "raios de Júpiter" para "raios terrestres".
+
+```{r}
+raio = dados %>% 
+  filter(!is.na(radius)) %>% 
+  select(X..name, radius) %>% 
+  mutate(radius = radius*11)
+
+nrow(raio)
+head(raio)
+```
+
+Consideremos como raios adequados valores entre 0,5 e 1,5 raio terrestre.
+
+```{r}
+raio_adequado = raio %>% 
+  filter(radius > 0.5 & radius < 1.5)
+
+nrow(raio_adequado)
+head(raio_adequado)
+```
+
+Portanto, temos que 850 de 3902 planetas apresentam raio semelhante ao terrestre, o que representa **21,78%**.
+
+Assim, temos uma chance de **0,31%** de um exoplaneta satisfazer a essas duas condições simultaneamente.
+
+Por fim, vamos plotar esses dados em um gráfico de dispersão para analisar a relação entre eles.
+
+```{r}
+massa_e_raio = dados %>% 
+  filter(!is.na(mass) & !is.na(radius)) %>% 
+  select(X..name, mass, radius) %>% 
+  mutate(mass = mass*318) %>% 
+  mutate(radius = radius*11)
+
+grafico_massa_e_raio = ggplot(massa_e_raio, aes(x = mass, y = radius)) +
+  geom_point(alpha = 0.5) +
+  scale_x_log10() +
+  scale_y_log10()
+
+grafico_massa_e_raio
+```
+
+Como esperado, a massa e o raio são medidas diretamente proporcionais, já que, em geral, quanto maior o planeta, maior sua massa.
+
+## Período orbital e temperatura do planeta
+
+A seguir, vamos efetuar uma análise semelhante para o período orbital desses planetas, ou seja, para o tempo que eles levam para completar uma volta em torno de suas estrelas.
+
+Vamos fazer nossa clássica tabela eliminando os valores nulos. Aqui não é necessária nenhuma conversão pois a unidade de medida já está em dias.
+
+```{r}
+periodo = dados %>% 
+  filter(!is.na(orbital_period)) %>% 
+  select(X..name, orbital_period)
+
+nrow(periodo)
+head(periodo)
+```
+
+Creio que seria razoável um ano com duração de 200 a 500 dias. Então, vamos ver quantos planetas se encaixam nesse filtro.
+
+```{r}
+periodo_adequado = periodo %>% 
+  filter(orbital_period > 200 & orbital_period < 500)
+
+nrow(periodo_adequado)
+head(periodo_adequado)
+```
+
+Desse modo, descobrimos que, dos 4926 exoplanetas com período orbital conhecido, 225 se parecem com a Terra nesse quesito, isto é, **4,57%**.
+
+Agora, vamos estudar a temperatura calculada desses planetas. Para isso, vamos gerar nossa nova tabela excluindo os dados desconhecidos e convertendo a temperatura de Kelvin para graus Celsius.
+
+```{r}
+temperatura = dados %>% 
+  filter(!is.na(temp_calculated)) %>% 
+  select(X..name, temp_calculated) %>% 
+  mutate(temp_calculated = temp_calculated - 273)
+
+nrow(temperatura)
+head(temperatura)
+```
+
+Vamos aceitar como temperaturas "agradáveis" valores entre -40 e 60°C.
+
+```{r}
+temperatura_adequada = temperatura %>% 
+  filter(temp_calculated > -40 & temp_calculated < 60)
+
+nrow(temperatura_adequada)
+head(temperatura_adequada)
+```
+
+Portanto, conclui-se que 53 desses 1190 planetas apresentam temperaturas razoáveis, ou seja, **4,45%**.
+
+Assim, a probabilidade de um exoplaneta atender a essas duas condições é de **0,20%**.
+
+Novamente, vamos fazer desses dados um gráfico de dispersão.
+
+```{r}
+periodo_e_temperatura = dados %>% 
+  filter(!is.na(orbital_period) & !is.na(temp_calculated)) %>% 
+  select(X..name, orbital_period, temp_calculated) %>% 
+  mutate(temp_calculated = temp_calculated - 273)
+  
+grafico_periodo_e_temperatura = ggplot(periodo_e_temperatura, aes(x = orbital_period, y = temp_calculated)) +
+  geom_point(alpha = 0.5) +
+  scale_x_log10()
+
+grafico_periodo_e_temperatura
+```
+
+Podemos notar uma relação inversamente proporcional entre essas duas variáveis, já que, normalmente, quanto maior o período orbital de um planeta, mais longe ele está de sua estrela e, consequentemente, menor é a sua temperatura.
+
+## Excentricidade orbital
+
+Continuando, vamos estudar a excentricidade orbital desses exoplanetas, ou seja, o quão "redondas" são suas órbitas.
+
+Inicialmente, é claro, vamos gerar nossa tabela sem os valores nulos e eliminando também os valores maiores que 1, já que eles provavelmente devem ser erros da base, pois a excentricidade é um valor que permanece entre 0 e 1.
+
+```{r}
+excentricidade = dados %>% 
+  filter(!is.na(eccentricity) & eccentricity <= 1) %>% 
+  select(X..name, eccentricity)
+
+nrow(excentricidade)
+head(excentricidade)
+```
+
+Temos que a excentricidade da órbita terrestre é de aproximadamente 0,02. Dessa forma, podemos levar em conta excentricidades entre 0 e 0,1 para nossa análise.
+
+```{r}
+excentricidade_adequada = excentricidade %>% 
+  filter(eccentricity <= 0.1)
+
+nrow(excentricidade_adequada)
+head(excentricidade_adequada)
+```
+
+Desse modo, concluimos que 1122 dos 2184 exoplanetas com excentricidade conhecida se assemelham à Terra nesse aspecto, o que representa **51,37%**.
+
+Vamos analisar a distribuição desses dados por meio de um histograma.
+
+```{r}
+grafico_excentricidade = ggplot(excentricidade, aes(x = eccentricity)) +
+  geom_histogram()
+
+grafico_excentricidade
+```
+
+É notório que a maioria dos planetas possui órbitas relativamente circulares, com excentricidades menores que 0,25.
+
+## Massa e raio da estrela
+
+Agora, vamos começar a analisar não mais os planetas em si, mas sim suas estrelas.
+
+Primeiramente, assim como nos planetas, vamos estudar a massa desses astros. Para isso, criaremos nossa tabela excluindo os valores desconhecidos. Nenhuma conversão é necessária pois essa massa está calculada em "massas solares", uma unidade já bem adequada para os nossos objetivos.
+
+```{r}
+massa_estrela = dados %>% 
+  filter(!is.na(star_mass)) %>% 
+  select(X..name, star_mass)
+
+nrow(massa_estrela)
+head(massa_estrela)
+```
+
+Consideremos como valores adequados massas entre 0,5 e 1,5 massa solar.
+
+```{r}
+massa_estrela_adequada = massa_estrela %>% 
+  filter(star_mass > 0.5 & star_mass < 1.5)
+
+nrow(massa_estrela_adequada)
+head(massa_estrela_adequada)
+```
+
+Assim, conclui-se que, desses 4796 exoplanetas, 4076 possuem uma estrela com massa aproximadamente igual à do nosso Sol, ou seja, **84,99%**.
+
+Partindo agora para o raio dessas estrelas, vamos gerar nossa tabela sem valores nulos. Novamente, não é preciso nenhuma conversão, pois a unidade de medida é "raios solares".
+
+```{r}
+raio_estrela = dados %>% 
+  filter(!is.na(star_radius)) %>% 
+  select(X..name, star_radius)
+
+nrow(raio_estrela)
+head(raio_estrela)
+```
+
+Levemos em conta raios entre 0,5 e 1,5 raio solar para nosso estudo.
+
+```{r}
+raio_estrela_adequado = raio_estrela %>% 
+  filter(star_radius > 0.5 & star_radius < 1.5)
+
+nrow(raio_estrela_adequado)
+head(raio_estrela_adequado)
+```
+
+Dessa forma, descobrimos que 3505 de 4473 exoplanetas orbitam estrelas com raio semelhante ao do Sol, isto é, **78,36%**.
+
+Portanto, a chance de a estrela de um exoplaneta satisfazer a essas duas condições ao mesmo tempo é de **66,60%**.
+
+Semelhantemente a como fizemos com os planetas, vamos plotar um gráfico de dispersão com esses dados.
+
+```{r}
+massa_e_raio_estrela = dados %>% 
+  filter(!is.na(star_mass) & !is.na(star_radius)) %>% 
+  select(X..name, star_mass, star_radius)
+
+grafico_massa_e_raio_estrela = ggplot(massa_e_raio_estrela, aes(x = star_mass, y = star_radius)) +
+  geom_point(alpha = 0.5) +
+  scale_x_log10() +
+  scale_y_log10()
+
+grafico_massa_e_raio_estrela
+```
+
+Nota-se uma relação direta entre a massa e o raio das estrelas, o que, assim como nos planetas, é lógico, já que, quanto maior a estrela, mais massa ela possui. Mas, vale a pena ressaltar aqueles pontos separados na parte de baixo do gráfico, que são estrelas pequenas e com muita massa, o que possivelmente representa as estrelas de nêutrons, extremamente densas.
+
+## Tipo da estrela
+
+A seguir, vamos analisar os tipos das estrelas hospedeiras desses planetas. Para resumir, as estrelas são classificadas de acordo com seu tipo espectral, ou seja, sua cor emitida, com cada espectro recebendo uma letra como classe (F é branca, G é amarela, K é laranja, M é vermelha...).
+
+No nosso caso, esse tipo está registrado como uma string na coluna "star_sp_type", que apresenta também outras informações, como subclasse e intensidade. No entanto, para não tornar complexa demais nossa análise, vamos nos restringir apenas à classe geral dessas estrelas. Assim, precisamos novamente criar nossa tabela. Para isso, vamos eliminar os valores nulos, pegar apenas a primeira letra dessas strings, que representa a informação de que precisamos, e alterar os registros "s" para "S", que provavelmente são erros de digitação.
+
+```{r}
+tipo_estrela = dados %>%
+  filter(!star_sp_type == "") %>% 
+  select(X..name, star_sp_type) %>% 
+  mutate(star_sp_type = substr(star_sp_type, 1, 1))
+tipo_estrela$star_sp_type[tipo_estrela$star_sp_type == "s"] = "S"
+
+nrow(tipo_estrela)
+head(tipo_estrela)
+```
+
+Nosso Sol é classificado como uma estrela classe G devido à sua cor amarelada. Dessa forma, vamos ver quantas dessas estrelas também pertencem a essa categoria.
+
+```{r}
+tipo_estrela_adequado = tipo_estrela %>% 
+  filter(star_sp_type == "G")
+
+nrow(tipo_estrela_adequado)
+head(tipo_estrela_adequado)
+```
+
+Portanto, temos que 675 das 2048 estrelas dos registros são classificadas da mesma forma que o nosso Sol, o que equivale a **32,96%**.
+
+Para tornar isso mais visual, vamos gerar um gráfico de barras com esses dados.
+
+```{r}
+grafico_tipo_estrela = ggplot(tipo_estrela, aes(x = star_sp_type)) +
+  geom_bar()
+
+grafico_tipo_estrela
+```
+
+Observa-se a predominância de estrelas de classe G, K e M, respectivamente estrelas amarelas, laranjas e vermelhas.
+
+## Temperatura da estrela
+
+Por último, vamos estudar a temperatura dessas estrelas. Para isso, vamos, uma última vez, criar a nossa tabela sem valores nulos e convertendo a temperatura de Kelvin para graus Celsius.
+
+```{r}
+temperatura_estrela = dados %>% 
+  filter(!is.na(star_teff)) %>% 
+  select(X..name, star_teff) %>% 
+  mutate(star_teff = star_teff - 273)
+
+nrow(temperatura_estrela)
+head(temperatura_estrela)
+```
+
+Nosso Sol possui uma temperatura média (na superfície) de aproximadamente 5500°C. Assim, vamos considerar como temperaturas razoáveis valores entre 5000 e 6000°C.
+
+```{r}
+temperatura_estrela_adequada = temperatura_estrela %>% 
+  filter(star_teff > 5000 & star_teff < 6000)
+
+nrow(temperatura_estrela_adequada)
+head(temperatura_estrela_adequada)
+```
+
+Portanto, 2646 desses 4669 exoplanetas possuem estrelas com temperaturas semelhantes às do nosso Sol, o que representa **56,67%**.
+
+Vamos plotar um histograma para ver esses dados.
+
+```{r}
+grafico_temperatura_estrela = ggplot(temperatura_estrela, aes(x = star_teff)) +
+  geom_histogram() +
+  scale_x_log10()
+
+grafico_temperatura_estrela
+```
+
+É evidente uma concentração de estrelas com temperaturas entre 3000 e 8000°C, valores esses que representam principalmente estrelas dos tipos M, K, G e F, que são as mais comumente encontradas. E sim, essa classificação por tipo espectral também acaba considerando a temperatura desses astros, já que é justamente essa temperatura que determina a cor que a estrela irá emitir.
+
+# Etapa C - Pensamento editorial
+
+Como última etapa antes da produção em si da peça gráfica, vamos ao pensamento editorial.
+
+Primeiramente, o público alvo da minha peça é o público geral. Assim, precisarei explicar de forma explícita e simples todas as informações que estou querendo transmitir e terei que utilizar gráficos simples e que já sejam conhecidos pela maioria das pessoas. Dessa forma, preferi apelar para os gráficos de dispersão e de barras e para os histogramas.
+
+Em seguida, a minha intenção é de que a peça tenha um caráter dramático, mas não tão exagerado, pois a ideia final é a de que é muito difícil encontrarmos um planeta semelhante à Terra, e por isso devemos cuidar melhor do que temos agora. Além disso, devido à grande quantidade de textos que precisarei inserir, terei de destacar de forma precisa as informações essenciais de cada trecho, como os resultados numéricos encontrados.
+
+Por fim, quanto às ferramentas, estarei utilizando, é claro, o R-ggplot para a geração dos gráficos e a plataforma Canva para a montagem da peça gráfica.
+
+Feito isso, vamos à estilização e ao polimento dos gráficos.
+
+Como eu queria que o fundo da peça gráfica fosse preto com detalhes como estrelas e planetas, eu precisava de um tema para os gráficos que respeitasse essa cor e que fosse visualmente satisfatório. Assim, depois de uma pequena busca, encontrei o que precisava (o tema será carregado a seguir).
+
+```{r}
+theme_black = function(base_size = 12, base_family = "") {
+ 
+  theme_grey(base_size = base_size, base_family = base_family) %+replace%
+ 
+    theme(
+      # Specify axis options
+      axis.line = element_blank(),  
+      axis.text.x = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.text.y = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.ticks = element_line(color = "white", size  =  0.2),  
+      axis.title.x = element_text(size = base_size, color = "white", margin = margin(0, 10, 0, 0)),  
+      axis.title.y = element_text(size = base_size, color = "white", angle = 90, margin = margin(0, 10, 0, 0)),  
+      axis.ticks.length = unit(0.3, "lines"),   
+      # Specify legend options
+      legend.background = element_rect(color = NA, fill = "black"),  
+      legend.key = element_rect(color = "white",  fill = "black"),  
+      legend.key.size = unit(1.2, "lines"),  
+      legend.key.height = NULL,  
+      legend.key.width = NULL,      
+      legend.text = element_text(size = base_size*0.8, color = "white"),  
+      legend.title = element_text(size = base_size*0.8, face = "bold", hjust = 0, color = "white"),  
+      legend.position = "right",  
+      legend.text.align = NULL,  
+      legend.title.align = NULL,  
+      legend.direction = "vertical",  
+      legend.box = NULL, 
+      # Specify panel options
+      panel.background = element_rect(fill = "black", color  =  NA),  
+      panel.border = element_rect(fill = NA, color = "white"),  
+      panel.grid.major = element_line(color = "black"),  
+      panel.grid.minor = element_line(color = "black"),  
+      panel.margin = unit(0.5, "lines"),   
+      # Specify facetting options
+      strip.background = element_rect(fill = "grey30", color = "grey10"),  
+      strip.text.x = element_text(size = base_size*0.8, color = "white"),  
+      strip.text.y = element_text(size = base_size*0.8, color = "white",angle = -90),  
+      # Specify plot options
+      plot.background = element_rect(color = "black", fill = "black"),  
+      plot.title = element_text(size = base_size*1.2, color = "white"),  
+      plot.margin = unit(rep(1, 4), "lines")
+ 
+    )
+ 
+}
+```
+
+A partir de agora, o mesmo processo se repete para todos os meus 6 gráficos: aplicação do tema, definição dos textos e destaque dos dados favoráveis. Os resultados estão exibidos a seguir.
+
+```{r}
+grafico_massa_e_raio = ggplot(massa_e_raio, aes(x = mass, y = radius)) +
+  geom_point(alpha = 0.5, color = "gray25") +
+  geom_point(data = subset(massa_e_raio, mass > 0.5 & mass < 1.5 & radius > 0.5 & radius < 1.5), aes(x = mass, y = radius), color = "white") +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = "Massa do planeta (massas terrestres)", y = "Raio do planeta (raios terrestres)", title = "Massa por raio dos exoplanetas") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_massa_e_raio
+```
+
+```{r}
+grafico_periodo_e_temperatura = ggplot(periodo_e_temperatura, aes(x = orbital_period, y = temp_calculated)) +
+  geom_point(alpha = 0.5, color = "gray25") +
+  scale_x_log10() +
+  labs(x = "Período orbital (dias)", y = "Temperatura calculada (°C)", title = "Período orbital por temperatura dos exoplanetas") +
+  geom_point(data = subset(periodo_e_temperatura, orbital_period > 200 & orbital_period < 500 & temp_calculated > -40 & temp_calculated < 60), aes(x = orbital_period, y = temp_calculated), color = "white") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_periodo_e_temperatura
+```
+
+```{r}
+grafico_excentricidade = ggplot(excentricidade, aes(x = eccentricity)) +
+  geom_histogram(fill = "gray25", alpha = 0.5) +
+  geom_histogram(data = subset(excentricidade, eccentricity < 0.1), aes(x = eccentricity), fill = "white") +
+  labs(x = "Excentricidade", y = NULL, title = "Distribuição dos exoplanetas por excentricidade orbital") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_excentricidade
+```
+
+```{r}
+grafico_massa_e_raio_estrela = ggplot(massa_e_raio_estrela, aes(x = star_mass, y = star_radius)) +
+  geom_point(color = "gray25", alpha = 0.5) +
+  scale_x_log10() +
+  scale_y_log10(labels = scales::label_number()) +
+  geom_point(data = subset(massa_e_raio_estrela, star_mass > 0.5 & star_mass < 1.5 & star_radius > 0.5 & star_radius < 1.5), aes(x = star_mass, y = star_radius), color = "white") +
+  labs(x = "Massa da estrela (massas solares)", y = "Raio da estrela (raios solares)", title = "Massa por raio das estrelas") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_massa_e_raio_estrela
+```
+
+```{r}
+grafico_tipo_estrela = ggplot(tipo_estrela, aes(x = star_sp_type)) +
+  geom_bar(fill = "gray25", alpha = 0.5) +
+  geom_bar(data = subset(tipo_estrela, star_sp_type == "G"), aes(x = star_sp_type), fill = "white") +
+  labs(x = "Tipo da estrela", y = NULL, title = "Distribuição das estrelas por classificação") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_tipo_estrela
+```
+
+```{r}
+grafico_temperatura_estrela = ggplot(temperatura_estrela, aes(x = star_teff)) +
+  geom_histogram(fill = "gray25", alpha = 0.5) +
+  scale_x_log10() +
+  geom_histogram(data = subset(temperatura_estrela, star_teff > 5000 & star_teff < 6000), aes(x = star_teff), fill = "white") +
+  labs(x = "Temperatura da estrela (°C)", y = NULL, title = "Distribuição das estrelas por temperatura") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_temperatura_estrela
+```
+
+E esse foi todo o processo de produção da minha peça gráfica. Claro que depois disso ainda teve toda uma fase de montagem no Canva, mas não é algo que seja muito viável comentar aqui, pois foi apenas um processo de ajustes, escrita de textos e decoração.
+
+Portanto, encerro esse relatório por aqui. A versão final da peça gráfica está nessa mesma pasta. Obrigado por ler e até mais!
+
+
+
+
+
+
+
+

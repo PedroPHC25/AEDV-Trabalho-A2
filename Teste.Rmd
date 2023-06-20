@@ -1,0 +1,169 @@
+---
+title: "Teste"
+author: "Pedro Henrique Coterli"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:\\Users\\pedro\\OneDrive - Fundacao Getulio Vargas - FGV\\1. Análise Exploratória de Dados e Visualização\\Trabalho A2")
+data = read.csv("exoplanet.eu_catalog.csv")
+```
+
+```{r}
+data
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+ggplot(subset(data, temp_calculated > 273 & temp_calculated < 323), aes(x = temp_calculated)) +
+  geom_histogram(bins = 100)
+```
+
+```{r}
+temperaturas_calculadas = select(data, X..name, temp_calculated) %>% filter(!is.na(temp_calculated))
+temperaturas_calculadas
+```
+
+
+```{r}
+ggplot(subset(data, temp_measured > 273 & temp_measured < 323), aes(x = temp_measured)) +
+  geom_histogram(bins = 10)
+```
+```{r}
+temperaturas_medidas = select(data, X..name, temp_measured) %>% filter(!is.na(temp_measured))
+temperaturas_medidas
+```
+
+
+```{r}
+data = data %>% mutate(mass = mass/0.00315)
+data
+```
+```{r}
+ggplot(subset(data, mass < 2), aes(x = mass)) +
+  geom_histogram()
+```
+
+```{r}
+massas = data %>% filter(!is.na(mass))
+massas
+```
+```{r}
+massas_adequadas = massas %>% filter(mass < 2)
+massas_adequadas
+```
+
+```{r}
+data = data %>% mutate(radius = radius*11.2)
+data
+```
+```{r}
+ggplot(subset(data, radius < 2), aes(x = radius)) +
+  geom_histogram()
+```
+
+```{r}
+raios = data %>% filter(!is.na(radius))
+raios
+```
+
+```{r}
+raios_adequados = raios %>% filter(radius < 2)
+raios_adequados
+```
+```{r}
+ggplot(subset(data, orbital_period > 300 & orbital_period < 400), aes(x = orbital_period)) +
+  geom_histogram()
+```
+```{r}
+periodos = data %>% filter(!is.na(orbital_period))
+periodos
+```
+```{r}
+periodos_adequados = periodos %>% filter(orbital_period > 300 & orbital_period < 400)
+periodos_adequados
+```
+```{r}
+moleculas = data %>% filter(!molecules == "")
+moleculas
+```
+
+
+```{r}
+moleculas_agua = data %>% filter(grepl("H2O", data$molecules) & grepl(", O2", data$molecules) & grepl("CO2", data$molecules))
+moleculas_agua
+```
+
+```{r}
+ggplot(data, aes(star_mass)) +
+  geom_histogram()
+```
+```{r}
+massa_estrela = data %>% filter(!is.na(star_mass))
+massa_estrela
+```
+```{r}
+massa_estrela_adequada = massa_estrela %>% filter(star_mass > 0.5 & star_mass < 1.5)
+massa_estrela_adequada
+```
+```{r}
+ggplot(data, aes(x = star_radius)) +
+  geom_histogram()
+```
+```{r}
+raio_estrela = data %>% filter(!is.na(star_radius))
+raio_estrela
+```
+
+```{r}
+raio_estrela_adequado = raio_estrela %>% filter(star_radius > 0.5 & star_radius < 1.5)
+raio_estrela_adequado
+```
+
+```{r}
+tipo_estrela = data %>% filter(!star_sp_type == "")
+tipo_estrela
+```
+
+```{r}
+tipo_estrela %>% filter(grepl("G2V", star_sp_type) | grepl("G2 V", star_sp_type)) %>% select(star_sp_type)
+```
+
+```{r}
+ggplot(data, aes(x = star_teff)) +
+  geom_histogram()
+```
+
+```{r}
+temperatura_estrela = data %>% filter(!is.na(star_teff))
+temperatura_estrela
+```
+
+```{r}
+temperatura_estrela_adequada = temperatura_estrela %>% filter(star_teff > 6000 & star_teff < 7000)
+temperatura_estrela_adequada
+```
+
+```{r}
+ggplot(data, aes(x = eccentricity)) +
+  geom_histogram()
+```
+```{r}
+excentricidade = data %>% filter(!is.na(eccentricity))
+excentricidade
+```
+
+```{r}
+excentricidade_adequada = excentricidade %>% filter(eccentricity < 0.1)
+excentricidade_adequada
+```
+

@@ -1,0 +1,230 @@
+---
+title: "AEDV_A2"
+author: "Pedro Henrique Coterli"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+library(tidyverse)
+```
+
+```{r}
+if(!require(ggthemes)) install.packages("ggthemes", repos = "http://cran.us.r-project.org")
+library(ggthemes)
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+ 
+theme_black = function(base_size = 12, base_family = "") {
+ 
+  theme_grey(base_size = base_size, base_family = base_family) %+replace%
+ 
+    theme(
+      # Specify axis options
+      axis.line = element_blank(),  
+      axis.text.x = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.text.y = element_text(size = base_size*0.8, color = "white", lineheight = 0.9),  
+      axis.ticks = element_line(color = "white", size  =  0.2),  
+      axis.title.x = element_text(size = base_size, color = "white", margin = margin(0, 10, 0, 0)),  
+      axis.title.y = element_text(size = base_size, color = "white", angle = 90, margin = margin(0, 10, 0, 0)),  
+      axis.ticks.length = unit(0.3, "lines"),   
+      # Specify legend options
+      legend.background = element_rect(color = NA, fill = "black"),  
+      legend.key = element_rect(color = "white",  fill = "black"),  
+      legend.key.size = unit(1.2, "lines"),  
+      legend.key.height = NULL,  
+      legend.key.width = NULL,      
+      legend.text = element_text(size = base_size*0.8, color = "white"),  
+      legend.title = element_text(size = base_size*0.8, face = "bold", hjust = 0, color = "white"),  
+      legend.position = "right",  
+      legend.text.align = NULL,  
+      legend.title.align = NULL,  
+      legend.direction = "vertical",  
+      legend.box = NULL, 
+      # Specify panel options
+      panel.background = element_rect(fill = "black", color  =  NA),  
+      panel.border = element_rect(fill = NA, color = "white"),  
+      panel.grid.major = element_line(color = "black"),  
+      panel.grid.minor = element_line(color = "black"),  
+      panel.margin = unit(0.5, "lines"),   
+      # Specify facetting options
+      strip.background = element_rect(fill = "grey30", color = "grey10"),  
+      strip.text.x = element_text(size = base_size*0.8, color = "white"),  
+      strip.text.y = element_text(size = base_size*0.8, color = "white",angle = -90),  
+      # Specify plot options
+      plot.background = element_rect(color = "black", fill = "black"),  
+      plot.title = element_text(size = base_size*1.2, color = "white"),  
+      plot.margin = unit(rep(1, 4), "lines")
+ 
+    )
+ 
+}
+```
+
+
+
+```{r}
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+```
+
+```{r}
+data = read.csv("exoplanet.eu_catalog.csv")
+```
+
+```{r}
+raio_e_massa = data %>% 
+  filter(!is.na(mass) & !is.na(radius)) %>% 
+  select(X..name, mass, radius) %>% 
+  mutate(mass = mass*318) %>% 
+  mutate(radius = radius*11)
+raio_e_massa
+```
+
+```{r}
+grafico_raio_massa = ggplot(raio_e_massa, aes(x = mass, y = radius)) +
+  geom_point(alpha = 0.5, color = "gray25") +
+  geom_point(data = subset(raio_e_massa, mass > 0.5 & mass < 1.5 & radius > 0.5 & radius < 1.5), aes(x = mass, y = radius), color = "white") +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = "Massa do planeta (massas terrestres)", y = "Raio do planeta (raios terrestres)", title = "Massa por raio dos exoplanetas") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+
+grafico_raio_massa
+```
+
+```{r}
+raio_e_massa_adequados = raio_e_massa %>% filter(mass > 0.5 & mass < 1.5 & radius > 0.5 & radius < 1.5)
+raio_e_massa_adequados
+```
+
+```{r}
+raio = data %>% filter(!is.na(mass))
+raio
+raio = raio %>% filter(mass > 0.5 & mass < 1.5)
+raio
+```
+
+
+```{r}
+massa_e_raio_estrela = data %>% filter(!is.na(star_mass) & !is.na(star_radius)) %>% select(X..name, star_mass, star_radius)
+massa_e_raio_estrela
+```
+```{r}
+grafico_massa_raio_estrela = ggplot(massa_e_raio_estrela, aes(x = star_mass, y = star_radius)) +
+  geom_point(color = "gray25", alpha = 0.5) +
+  scale_x_log10() +
+  scale_y_log10(labels = scales::label_number()) +
+  geom_point(data = subset(massa_e_raio_estrela, star_mass > 0.5 & star_mass < 1.5 & star_radius > 0.5 & star_radius < 1.5), aes(x = star_mass, y = star_radius), color = "white") +
+  labs(x = "Massa da estrela (massas solares)", y = "Raio da estrela (raios solares)", title = "Massa por raio das estrelas") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+grafico_massa_raio_estrela
+
+ggsave("grafico_massa_raio_estrela.jpg", plot = grafico_massa_raio_estrela)
+```
+```{r}
+massa_e_raio_estrela_adequados = massa_e_raio_estrela %>% filter(star_mass > 0.5 & star_mass < 1.5 & star_radius > 0.5 & star_radius < 1.5)
+massa_e_raio_estrela_adequados
+```
+```{r}
+estrelas_de_neutrons = data %>% filter(!is.na(star_mass) & !is.na(star_radius)) %>% filter(star_radius < 0.05) %>% select(X..name, star_name)
+estrelas_de_neutrons
+```
+
+
+```{r}
+periodo_e_temperatura = data %>% filter(!is.na(orbital_period) & !is.na(temp_calculated)) %>% 
+  select(X..name, orbital_period, temp_calculated) %>% 
+  mutate(temp_calculated = temp_calculated - 273)
+periodo_e_temperatura
+```
+
+```{r}
+grafico_periodo_temperatura = ggplot(periodo_e_temperatura, aes(x = orbital_period, y = temp_calculated)) +
+  geom_point(alpha = 0.5, color = "gray25") +
+  scale_x_log10() +
+  labs(x = "Período orbital (dias)", y = "Temperatura calculada (°C)", title = "Período orbital por temperatura dos exoplanetas") +
+  geom_point(data = subset(periodo_e_temperatura, orbital_period > 200 & orbital_period < 500 & temp_calculated > -40 & temp_calculated < 60), aes(x = orbital_period, y = temp_calculated), color = "white") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+grafico_periodo_temperatura
+```
+
+```{r}
+periodo_e_temperatura_adequados = periodo_e_temperatura %>% filter(orbital_period > 300 & orbital_period < 400 & temp_calculated > -50 & temp_calculated < 50)
+periodo_e_temperatura_adequados
+```
+
+```{r}
+tipo_estrela = data %>% filter(!star_sp_type == "") %>% select(X..name, star_sp_type) %>% mutate(star_sp_type = substr(star_sp_type, 1, 1))
+tipo_estrela$star_sp_type[tipo_estrela$star_sp_type == "s"] = "S"
+tipo_estrela
+```
+
+```{r}
+grafico_tipo_estrela = ggplot(tipo_estrela, aes(x = star_sp_type)) +
+  geom_bar(fill = "gray25", alpha = 0.5) +
+  geom_bar(data = subset(tipo_estrela, star_sp_type == "G"), aes(x = star_sp_type), fill = "white") +
+  labs(x = "Tipo da estrela", y = NULL, title = "Distribuição das estrelas por classificação") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+grafico_tipo_estrela
+```
+```{r}
+tipo_estrela_adequado = tipo_estrela %>% filter(star_sp_type == "G")
+tipo_estrela_adequado
+```
+```{r}
+temperatura_estrela = data %>% filter(!is.na(star_teff)) %>% select(X..name, star_teff) %>% mutate(star_teff = star_teff - 273)
+temperatura_estrela
+```
+```{r}
+grafico_temperatura_estrela = ggplot(temperatura_estrela, aes(x = star_teff)) +
+  geom_histogram(fill = "gray25", alpha = 0.5) +
+  scale_x_log10() +
+  geom_histogram(data = subset(temperatura_estrela, star_teff > 5000 & star_teff < 6000), aes(x = star_teff), fill = "white") +
+  labs(x = "Temperatura da estrela (°C)", y = NULL, title = "Distribuição das estrelas por temperatura") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+grafico_temperatura_estrela
+
+ggsave("grafico_temperatura_estrela.jpg", plot = grafico_temperatura_estrela)
+```
+
+```{r}
+temperatura_estrela_adequada = temperatura_estrela %>% filter(star_teff > 5000 & star_teff < 6000)
+temperatura_estrela_adequada
+```
+```{r}
+excentricidade = data %>% filter(!is.na(eccentricity)) %>% select(X..name, eccentricity) %>% filter(eccentricity <= 1)
+excentricidade
+```
+```{r}
+grafico_excentricidade = ggplot(excentricidade, aes(x = eccentricity)) +
+  geom_histogram(fill = "gray25", alpha = 0.5) +
+  geom_histogram(data = subset(excentricidade, eccentricity < 0.1), aes(x = eccentricity), fill = "white") +
+  labs(x = "Excentricidade", y = NULL, title = "Distribuição dos exoplanetas por excentricidade orbital") +
+  theme_black() +
+  theme(plot.title = element_text(vjust = 2))
+grafico_excentricidade
+```
+```{r}
+excentricidade_adequada = excentricidade %>% filter(eccentricity <= 0.1)
+excentricidade_adequada
+```
+
+
+
+
+
+
